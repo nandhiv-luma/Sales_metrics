@@ -1,0 +1,38 @@
+name: Sales Metrics - HubSpot to Google Sheets
+
+on:
+  schedule:
+    # Every day at 10:07 UTC = 6:07 AM New York (EDT) / 5:07 AM (EST)
+    # = 3:37 PM India. GitHub cron is always UTC; a few minutes past
+    # the hour avoids the busy :00 slot, when scheduled runs get delayed.
+    - cron: "7 10 * * *"
+  workflow_dispatch:   # adds a "Run workflow" button on the Actions tab
+
+# Never let two runs write the sheet at the same time.
+concurrency:
+  group: sales-metrics
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pytz gspread google-auth
+
+      - name: Run main.py
+        env:
+          HUBSPOT_ACCESS_TOKEN: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          PYTHONUNBUFFERED: "1"   # show log lines live instead of at the end
+        run: python main.py
